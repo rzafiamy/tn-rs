@@ -77,7 +77,15 @@ static LINE_PREFIX: LazyLock<Regex> = LazyLock::new(|| {
 });
 static EMPHASIS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*+|__+|~~|`+").unwrap());
 static SNAKE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\w)_(\w)").unwrap());
-static DASHES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+[–—]\s+|[–—]").unwrap());
+// Dashes between words become a pause; a dash between two word characters
+// ("06h51–06h52", "lundi–vendredi") is a range, read by the language pass.
+static DASHES: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s+[–—]\s+|^[–—]\s*|\s*[–—]$|\s[–—]|[–—]\s").unwrap());
+static ARROWS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s*(?:→|->|=>|⇒|⟶|➜|➔)\s*").unwrap());
+/// Words of 5+ capitals ("RANDRIANARIZAKA", "IMGAM") are names or shouting,
+/// not acronyms: engines spell them letter by letter, so they get a normal case.
+static SHOUTED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b\p{Lu}{5,}\b").unwrap());
 
 fn is_emoji(c: char) -> bool {
     matches!(c as u32,
@@ -116,12 +124,22 @@ fn markdown_to_sentences(text: &str) -> String {
         let line = SNAKE.replace_all(&line, "$1 $2");
         let line: String = line.chars().filter(|c| !is_emoji(*c)).collect();
         let line = DASHES.replace_all(&line, ", ");
+        let line = ARROWS.replace_all(&line, ", ");
+        let line = SHOUTED.replace_all(&line, |c: &Captures| {
+            let w = &c[0];
+            let mut chars = w.chars();
+            let first = chars.next().unwrap();
+            format!("{first}{}", chars.as_str().to_lowercase())
+        });
         let line = line.trim().trim_end_matches(',').trim();
         if line.is_empty() {
             continue;
         }
         out.push_str(line);
-        if !line.ends_with(['.', '!', '?', '…', ':', ';', '»', '"', ')']) {
+        // a closing bracket or quote ends the sentence only after punctuation:
+        // "(… identifiant)" and "« inconnu »" at a line end still need a pause
+        let inner = line.trim_end_matches([')', '»', '"', '”', '’', ']', ' ', '\u{a0}']);
+        if !inner.ends_with(['.', '!', '?', '…', ':', ';']) {
             out.push('.');
         }
         out.push(' ');
@@ -406,8 +424,128 @@ static FR_PERCENT_DEGREE_UNIT: LazyLock<Regex> = LazyLock::new(|| {
 static FR_NUMBER: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?(-)?({FR_NUM})")).unwrap());
 
+/// Words used to read addresses and symbols in a language.
+struct Spoken {
+    at: &'static str,
+    dot: &'static str,
+    slash: &'static str,
+    or: &'static str,
+    to: &'static str,
+}
+
+const FR_SPOKEN: Spoken = Spoken {
+    at: "arobase",
+    dot: "point",
+    slash: "slash",
+    or: "ou",
+    to: "à",
+};
+const EN_SPOKEN: Spoken = Spoken {
+    at: "at",
+    dot: "dot",
+    slash: "slash",
+    or: "or",
+    to: "to",
+};
+
+static EMAIL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b([\w.+-]+)@([\w-]+(?:\.[\w-]+)+)\b").unwrap());
+static URL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"\b(?:https?://|www\.)[^\s<>()\[\]"«»]+"#).unwrap());
+static DOMAIN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"\b[\w-]+(?:\.[\w-]+)*\.(?:com|org|net|fr|ovh|io|ai|dev|mg|eu|co|uk|de|be|ch|ca|app|info|gov|edu)\b",
+    )
+    .unwrap()
+});
+static IPV4: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\b").unwrap()
+});
+/// "102.x", "10.0.*": a numbered prefix with a wildcard.
+static NUM_WILDCARD: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b([0-9]{1,3})\.([a-zA-Z*])(?:\b|$)").unwrap());
+static RANGE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\w)[–—](\w)").unwrap());
+static SPACED_SLASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\S)\s+/\s+(\S)").unwrap());
+/// "étudiants/inscrits"; two letters on each side so units ("km/h") stay.
+static WORD_SLASH: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(\p{L}{2})/(\p{L}{2})").unwrap());
+static LEADING_SLASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(^|\s)/([\w-]+)").unwrap());
+
+/// Addresses, IPs, ranges and slashes, before the number rules see them.
+fn web_and_symbols(s: &str, sp: &Spoken, cardinal: fn(u64) -> String) -> String {
+    let dotted = |t: &str| {
+        t.split('.')
+            .filter(|p| !p.is_empty())
+            .collect::<Vec<_>>()
+            .join(&format!(" {} ", sp.dot))
+    };
+    let s = EMAIL.replace_all(s, |c: &Captures| {
+        let local = c[1].replace(['_', '-', '+'], " ");
+        format!("{} {} {}", dotted(&local), sp.at, dotted(&c[2]))
+    });
+    let s = URL.replace_all(&s, |c: &Captures| {
+        let raw = c[0].trim_end_matches(['.', ',', ';', ':', '!', '?']);
+        let tail = &c[0][raw.len()..];
+        let rest = raw.split_once("://").map_or(raw, |(_, r)| r);
+        let rest = rest.strip_prefix("www.").unwrap_or(rest);
+        let mut parts = rest.split(['/', '?', '#']).filter(|p| !p.is_empty());
+        let host = parts.next().unwrap_or("");
+        let mut out = dotted(host);
+        for p in parts {
+            out.push_str(&format!(
+                " {} {}",
+                sp.slash,
+                p.replace(['-', '_', '='], " ")
+            ));
+        }
+        format!("{out}{tail}")
+    });
+    let s = DOMAIN.replace_all(&s, |c: &Captures| dotted(&c[0]));
+    let s = IPV4.replace_all(&s, |c: &Captures| {
+        let parts: Vec<u64> = (1..=4).map(|i| c[i].parse().unwrap_or(999)).collect();
+        if parts.iter().any(|p| *p > 255) {
+            return c[0].to_string();
+        }
+        parts
+            .iter()
+            .map(|p| cardinal(*p))
+            .collect::<Vec<_>>()
+            .join(&format!(" {} ", sp.dot))
+    });
+    let s = NUM_WILDCARD.replace_all(&s, |c: &Captures| {
+        let n: u64 = c[1].parse().unwrap_or(0);
+        format!("{} {} {}", cardinal(n), sp.dot, &c[2])
+    });
+    let s = RANGE.replace_all(&s, |c: &Captures| format!("{} {} {}", &c[1], sp.to, &c[2]));
+    let s = SPACED_SLASH.replace_all(&s, "$1, $2");
+    let s = WORD_SLASH.replace_all(&s, |c: &Captures| format!("{} {} {}", &c[1], sp.or, &c[2]));
+    LEADING_SLASH
+        .replace_all(&s, |c: &Captures| {
+            format!("{}{} {}", &c[1], sp.slash, &c[2])
+        })
+        .into_owned()
+}
+
+/// French uses the comma for decimals: "1.250.000" groups thousands, and a
+/// single dot is a version or a code ("Qwen-Image 2.0", "Python 3.11").
+static FR_DOT_THOUSANDS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[0-9]{1,3}(?:\.[0-9]{3}){2,}\b").unwrap());
+static FR_DOT_VERSION: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b([0-9]+)\.([0-9]+)\b").unwrap());
+
 fn french(text: &str, safe: bool) -> String {
-    let mut s = text.to_string();
+    let s = web_and_symbols(text, &FR_SPOKEN, fr_cardinal);
+    let s = FR_DOT_THOUSANDS.replace_all(&s, |c: &Captures| c[0].replace('.', " "));
+    let mut s = FR_DOT_VERSION
+        .replace_all(&s, |c: &Captures| {
+            let minor = if c[2].len() > 1 && c[2].starts_with('0') {
+                digits(&c[2], &FR_DIGITS)
+            } else {
+                fr_cardinal(c[2].parse().unwrap_or(0))
+            };
+            format!("{} point {minor}", fr_cardinal(c[1].parse().unwrap_or(0)))
+        })
+        .into_owned();
     for (re, rep) in FR_ABBR.iter() {
         s = re.replace_all(&s, *rep).into_owned();
     }
@@ -811,7 +949,7 @@ static EN_NUMBER: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?(-)?({EN_NUM})")).unwrap());
 
 fn english(text: &str, safe: bool) -> String {
-    let mut s = text.to_string();
+    let mut s = web_and_symbols(text, &EN_SPOKEN, en_cardinal);
     for (re, rep) in EN_ABBR.iter() {
         s = re.replace_all(&s, *rep).into_owned();
     }
@@ -1096,6 +1234,51 @@ mod tests {
         );
     }
 
+    /// covers: REQ-TXT-004
+    #[test]
+    fn addresses_ips_ranges_and_slashes() {
+        assert_eq!(
+            fr("Écrivez à noreply@imgam.ovh ou sur https://imgam.ovh/adm."),
+            "Écrivez à noreply arobase imgam point ovh ou sur imgam point ovh slash adm."
+        );
+        assert_eq!(
+            fr(
+                "IP 102.18.161.124 et 102.x, de 06h51–06h52, étudiants/inscrits, Telma / Airtel, l'accès /adm."
+            ),
+            "IP cent deux point dix-huit point cent soixante et un point cent vingt-quatre et cent deux point x, \
+             de six heures cinquante et une à six heures cinquante-deux, étudiants ou inscrits, Telma, Airtel, l'accès slash adm."
+        );
+        assert_eq!(
+            en("Mail jane.doe@gmail.com, see www.example.com/docs/api, 10.0.0.1, Mon–Fri."),
+            "Mail jane dot doe at gmail dot com, see example dot com slash docs slash api, ten dot zero dot zero dot one, Mon to Fri."
+        );
+    }
+
+    /// covers: REQ-TXT-004
+    #[test]
+    fn french_versions_and_dot_thousands() {
+        assert_eq!(
+            fr("Qwen-Image 2.0, Python 3.11 et 1.250.000 €."),
+            "Qwen-Image deux point zéro, Python trois point onze et un million deux cent cinquante mille euros."
+        );
+        assert_eq!(
+            normalize_safe("Qwen-Image 2.0 sort.", Lang::Fr),
+            "Qwen-Image deux point zéro sort."
+        );
+    }
+
+    /// covers: REQ-TXT-002
+    #[test]
+    fn shouting_arrows_and_line_ends() {
+        assert_eq!(
+            normalize(
+                "Falinirina RANDRIANARIZAKA (nom connu)\ncompte inconnu → tentative\nmarqué « Utilisateur inconnu »\nIP et URL",
+                Lang::Other
+            ),
+            "Falinirina Randrianarizaka (nom connu). compte inconnu, tentative. marqué « Utilisateur inconnu ». IP et URL."
+        );
+    }
+
     /// covers: REQ-TXT-001
     #[test]
     fn dates_and_glued_numbers() {
@@ -1128,7 +1311,7 @@ mod tests {
                 "L'A380 coûte 12,99 € le 21/10/2026, version 3.11.",
                 Lang::Fr
             ),
-            "L'A380 coûte douze euros quatre-vingt-dix-neuf le vingt et un octobre deux mille vingt-six, version 3.11."
+            "L'A380 coûte douze euros quatre-vingt-dix-neuf le vingt et un octobre deux mille vingt-six, version trois point onze."
         );
     }
 

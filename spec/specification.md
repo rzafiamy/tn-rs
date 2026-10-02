@@ -35,6 +35,7 @@ Users:
 | ID | Requirement | Priority |
 |---|---|---|
 | REQ-TXT-001 | French and English numbers, decimals, negatives, times, dates, amounts, percentages, temperatures, units, ordinals, phone numbers, years (English), abbreviations and letter-glued codes are spelled out. | Must |
+| REQ-TXT-004 | E-mails, URLs, domains, IPv4 addresses, numbered wildcards (`102.x`), French version numbers (`2.0`) and dot thousands, ranges and slashes are read as spoken (French, English). | Must |
 | REQ-TXT-002 | Markdown (headings, lists, emphasis, tables, code blocks, links), emoji and line breaks become plain sentences in every language. | Must |
 | REQ-TXT-003 | Text with nothing to normalize comes out unchanged. | Must |
 | REQ-MOD-001 | Safe mode leaves numbers the rules cannot read for sure (glued to letters, digit chains, parenthesized) as digits and normalizes the rest. | Must |

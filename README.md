@@ -30,9 +30,15 @@ Core (must work, covered by tests — see [spec/matrix.md](spec/matrix.md)):
   ordinals (`1er`, `3e`, `21st`), phone numbers read in pairs (French),
   English years ("nineteen eighty-four"), abbreviations (`Mme`, `M.`, `Dr`,
   `Mr.`, `e.g.`, `n°`), codes glued to letters (`221B`, `Q2`).
+- **Addresses and symbols** (French, English): e-mails and URLs read as
+  spoken ("noreply arobase imgam point ovh", "example dot com slash docs"),
+  IPv4 addresses octet by octet, `102.x`, ranges (`06h51–06h52` → "à"/"to"),
+  `étudiants/inscrits` → "ou", `Telma / Airtel` → a pause, `/adm` → "slash adm".
 - **Markdown and chat text, every language**: headings, lists, emphasis,
-  tables, code blocks, links and emoji become plain sentences, one per line,
-  so the engine pauses where the reader would.
+  tables, code blocks, links, emoji and arrows become plain sentences, one
+  per line, so the engine pauses where the reader would (also after a line
+  ending in `)` or `»`); words of 5+ capitals (`RANDRIANARIZAKA`) get a
+  normal case instead of being spelled out.
 - **Pronunciation lexicon** (`crates/tn/src/lexicon.rs`): your words first —
   recent terms, names, brands, acronyms (`ChatGPT`, `Nvidia`, `RTX`) — per
   language or for all, case-insensitive, whole words, reloaded when the file
@@ -70,9 +76,9 @@ when missing (`CHECK_ONLY=1 ./prereq.sh` only checks).
 ### Check the installation
 
 ```bash
-build/tn-server-linux-x86_64-0.1.0 --version
-build/tn-server-linux-x86_64-0.1.0 normalize --lang fr "Rendez-vous à 9h30."
-tests/e2e.sh build/tn-server-linux-x86_64-0.1.0     # CLI, lexicon, HTTP API
+build/tn-server-linux-x86_64-0.2.0 --version
+build/tn-server-linux-x86_64-0.2.0 normalize --lang fr "Rendez-vous à 9h30."
+tests/e2e.sh build/tn-server-linux-x86_64-0.2.0     # CLI, lexicon, HTTP API
 ```
 
 ## Usage

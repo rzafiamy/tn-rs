@@ -3,7 +3,8 @@
 | Requirement | Feature | Area | Code | Tests | Status | Notes |
 |---|---|---|---|---|---|---|
 | REQ-TXT-001 | French/English rules | Rules | `crates/tn/src/rules.rs` | `french_cardinals`, `french_text`, `english_text`, `dates_and_glued_numbers`, `normalizes_text_and_batches`, `tests/e2e.sh` | ✅ | |
-| REQ-TXT-002 | Markdown and lines | Rules | `rules.rs` (`markdown_to_sentences`) | `markdown` | ✅ | |
+| REQ-TXT-004 | Addresses and symbols | Rules | `rules.rs` (`web_and_symbols`, `FR_DOT_VERSION`) | `addresses_ips_ranges_and_slashes`, `french_versions_and_dot_thousands` | ✅ | found on a chat answer that Pocket TTS turned to noise |
+| REQ-TXT-002 | Markdown and lines | Rules | `rules.rs` (`markdown_to_sentences`) | `markdown`, `shouting_arrows_and_line_ends` | ✅ | |
 | REQ-TXT-003 | Plain text unchanged | Rules | `rules.rs` | `plain_text_unchanged` | ✅ | |
 | REQ-MOD-001 | Safe mode | Rules | `rules.rs` (`context`, `normalize_safe`), `lib.rs` (`Mode`) | `safe_mode_leaves_ambiguous_numbers`, `modes` | ✅ | |
 | REQ-LNG-001 | Language codes | Library | `lib.rs` (`Lang::from_code`) | `language_codes` | ✅ | |
