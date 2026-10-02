@@ -54,3 +54,22 @@ Remaining errors of the best system: "Henry eight" (for "Henry the Eighth"),
 NVIDIA NeMo text processing (WFST grammars) was also evaluated: English
 grammars are strong (dates, addresses, phone numbers); the French grammar
 leaves `9h30`, `€`, `°C` and `Mme` untouched.
+
+## Heard through TTS engines (2026-10-02)
+
+zallama `benchmarks/tts_normalization.py`: the 16 sentences spoken by each
+engine (3 takes), transcribed by Parakeet TDT 0.6B v3, WER after both sides
+go through tn strict (digit groups joined, so the ASR's own number
+formatting is not counted). Pocket TTS on CPU, Kokoro with a voice per
+language.
+
+| Engine | No normalization | tn strict | tn safe + Gemma-4-E2B QAT |
+|---|---|---|---|
+| Pocket TTS French | 73.0 % | 14.1 % | **11.2 %** |
+| Pocket TTS English | 35.1 % | 13.8 % | **7.4 %** |
+| Kokoro French | 15.1 % | 8.5 % | **5.5 %** |
+| Kokoro English | 8.9 % | 3.9 % | **1.5 %** |
+
+Pocket TTS sometimes loops on long runs of repeated digits ("five five five
+… four four four four"), whatever the normalizer; part of its remaining
+error is that.
