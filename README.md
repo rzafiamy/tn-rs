@@ -102,6 +102,13 @@ precedence. The only file it reads is the lexicon you point it to
 change any other setting, change the option or variable and restart the
 process.
 
+In production, keep the lexicon at a fixed path and point `TN_LEXICON` (or
+`--lexicon`) to it; suggested locations: `~/.config/tn/lexicon.tsv` on Linux,
+`~/Library/Application Support/tn/lexicon.tsv` on macOS,
+`%APPDATA%\tn\lexicon.tsv` on Windows. Under zallama the lexicon is the
+registry entry's `file` (in `models_dir`, e.g. `/bank2/zallama/models/tn-lexicon.tsv`);
+edit it in place, it applies to the next request.
+
 | Option / variable | Role | Default |
 |---|---|---|
 | `--host`, `TN_HOST` | Bind address (`serve`) | `127.0.0.1` |
