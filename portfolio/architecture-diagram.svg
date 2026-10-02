@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 200" font-family="sans-serif" font-size="14">
+  <rect width="860" height="200" fill="#ffffff"/>
+  <defs><marker id="a" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155"/></marker></defs>
+  <g fill="#e0f2fe" stroke="#0369a1">
+    <rect x="10" y="70" width="120" height="60" rx="8"/>
+    <rect x="170" y="70" width="120" height="60" rx="8"/>
+    <rect x="330" y="70" width="140" height="60" rx="8"/>
+    <rect x="510" y="70" width="140" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-dasharray="5 3"/>
+    <rect x="690" y="70" width="160" height="60" rx="8" fill="#dcfce7" stroke="#15803d"/>
+  </g>
+  <g fill="#0f172a" text-anchor="middle">
+    <text x="70" y="96">Chat text</text><text x="70" y="116" font-size="12">Markdown, digits</text>
+    <text x="230" y="96">Lexicon</text><text x="230" y="116" font-size="12">your words first</text>
+    <text x="400" y="96">Rules fr / en</text><text x="400" y="116" font-size="12">strict or safe mode</text>
+    <text x="580" y="96">LLM pass</text><text x="580" y="116" font-size="12">optional, leftovers</text>
+    <text x="770" y="96">TTS engine</text><text x="770" y="116" font-size="12">Pocket, Kokoro, Voxtral</text>
+  </g>
+  <g stroke="#334155" stroke-width="2" marker-end="url(#a)">
+    <line x1="130" y1="100" x2="168" y2="100"/><line x1="290" y1="100" x2="328" y2="100"/>
+    <line x1="470" y1="100" x2="508" y2="100"/><line x1="650" y1="100" x2="688" y2="100"/>
+  </g>
+  <text x="400" y="40" text-anchor="middle" fill="#0f172a" font-size="16">tn-server (Rust, ~1 ms)</text>
+  <rect x="160" y="55" width="320" height="90" fill="none" stroke="#0369a1" stroke-width="1.5" rx="10"/>
+  <text x="580" y="170" text-anchor="middle" fill="#64748b" font-size="12">zallama: Gemma-4-E2B, 1.8 GB VRAM</text>
+</svg>

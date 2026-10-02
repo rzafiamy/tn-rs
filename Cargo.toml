@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["crates/tn", "crates/tn-server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Rija Z. <rzafiamy@infodev.ovh>"]
+license = "MIT"
+repository = "https://github.com/rzafiamy/tn-rs"
+homepage = "https://github.com/rzafiamy/tn-rs"
+keywords = ["tts", "text-normalization", "speech", "french", "nlp"]
+categories = ["text-processing", "multimedia::audio"]
+
+[workspace.dependencies]
+regex = "1"
+anyhow = "1.0"
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower = { version = "0.4", features = ["util"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

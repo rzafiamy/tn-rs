@@ -1,0 +1,11 @@
+# tn pronunciation lexicon: word<TAB>respelling, or lang<TAB>word<TAB>respelling
+# (lang: fr, en, ... or * for all). Case-insensitive, whole words. See docs/lexicon.md.
+ChatGPT	tchatte gé pé té
+fr	Nvidia	ène vidia
+en	Nvidia	en vidia
+*	RTX	R T X
+*	GPU	G P U
+fr	IA	i a
+en	AI	A I
+fr	Md€	milliards d'euros
+fr	zallama	za lama
