@@ -5,6 +5,25 @@ versions: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-03
+
+### Added
+- Roman numerals where the context makes them unambiguous: ordinal suffix
+  (`XVIIe siècle` → dix-septième, `Ve République` → cinquième,
+  `François Ier` → premier, `Ire` → première), after a word that announces a number (`chapitre IV`,
+  `World War II`, `Super Bowl LVIII` → cardinal) and after a proper name
+  (`Louis XIV` → quatorze, `Henry VIII` → the eighth). Lone capitals
+  (`vitamine C`), non-canonical forms (`LLM`) and numerals that are mostly
+  acronyms (`CV`, `CD`, `MD`, `XL`, `CLI`…) stay as written.
+- Signs in front of numbers: `(+20 %)` → "plus vingt pour cent", `−3`
+  (U+2212) → "moins trois"; `+33 6…` → "plus trente-trois six…".
+- French tax abbreviations: `HT` → "hors taxes", `TTC` → "toutes taxes
+  comprises".
+
+### Fixed
+- Roman numerals of 5+ letters (`LVIII`, `MCMXCIX`) are no longer lowered
+  by the shouted-word rule.
+
 ## [0.2.0] - 2026-10-02
 
 ### Added
@@ -56,6 +75,7 @@ commits 2419768 and e3939e7 there), not released on its own.
 - French and English number, time, amount, unit and abbreviation rules;
   Markdown to sentences; safe mode; dates.
 
-[Unreleased]: https://github.com/rzafiamy/tn-rs/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/rzafiamy/tn-rs/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rzafiamy/tn-rs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rzafiamy/tn-rs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rzafiamy/tn-rs/releases/tag/v0.1.0

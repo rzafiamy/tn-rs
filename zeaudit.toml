@@ -39,7 +39,7 @@ reason = "Tauri is not used; only the Rust version matters (rust-toolchain.toml)
 
 [[waive]]
 id = "QUA-06"
-reason = "Version 0.1.0 is declared in [workspace.package] of the root Cargo.toml (virtual workspace); zeaudit 0.2.0 only reads [package]"
+reason = "Version 0.3.0 is declared in [workspace.package] of the root Cargo.toml (virtual workspace); zeaudit 0.2.0 only reads [package]"
 
 [[waive]]
 id = "PRT-04"

@@ -76,9 +76,9 @@ when missing (`CHECK_ONLY=1 ./prereq.sh` only checks).
 ### Check the installation
 
 ```bash
-build/tn-server-linux-x86_64-0.2.0 --version
-build/tn-server-linux-x86_64-0.2.0 normalize --lang fr "Rendez-vous à 9h30."
-tests/e2e.sh build/tn-server-linux-x86_64-0.2.0     # CLI, lexicon, HTTP API
+build/tn-server-linux-x86_64-0.3.0 --version
+build/tn-server-linux-x86_64-0.3.0 normalize --lang fr "Rendez-vous à 9h30."
+tests/e2e.sh build/tn-server-linux-x86_64-0.3.0     # CLI, lexicon, HTTP API
 ```
 
 ## Usage

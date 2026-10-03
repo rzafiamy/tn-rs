@@ -38,6 +38,8 @@ Users:
 | REQ-TXT-004 | E-mails, URLs, domains, IPv4 addresses, numbered wildcards (`102.x`), French version numbers (`2.0`) and dot thousands, ranges and slashes are read as spoken (French, English). | Must |
 | REQ-TXT-002 | Markdown (headings, lists, emphasis, tables, code blocks, links), emoji and line breaks become plain sentences in every language. | Must |
 | REQ-TXT-003 | Text with nothing to normalize comes out unchanged. | Must |
+| REQ-TXT-005 | Signs before numbers (`+`, `-`, `−`) are read ("plus", "moins"/"minus"); French `HT` and `TTC` are expanded. | Must |
+| REQ-TXT-006 | Roman numerals are read where the context is unambiguous (ordinal suffix, a number keyword before them, a proper name before them); acronyms, lone capitals and non-canonical forms stay. | Should |
 | REQ-MOD-001 | Safe mode leaves numbers the rules cannot read for sure (glued to letters, digit chains, parenthesized) as digits and normalizes the rest. | Must |
 | REQ-LNG-001 | Languages are given as codes or names (`fr`, `fr-FR`, `french`, `english_2026-04`); unknown ones get the language-independent handling. | Must |
 | REQ-LEX-001 | A lexicon (word → respelling, per language or all) is applied before the rules, case-insensitive, on whole words, longest key first, language-specific entries overriding general ones. | Must |

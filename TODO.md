@@ -1,7 +1,7 @@
 # TODO
 
-- [ ] Roman numerals: `XVIIe siècle` → dix-septième, `Louis XIV` →
-  quatorze, `Henry VIII` → the Eighth (context: regnal names, centuries).
+- [x] Roman numerals: `XVIIe siècle` → dix-septième, `Louis XIV` →
+  quatorze, `Henry VIII` → the Eighth (context: regnal names, centuries) — 0.3.0.
 - [ ] English ordinals in dates without suffix (`Oct. 21` → twenty-first)
   and month abbreviations.
 - [ ] German, Spanish, Italian, Portuguese rules.

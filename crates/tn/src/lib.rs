@@ -12,6 +12,7 @@
 //! model pass that handles them without touching what the rules got right.
 
 pub mod lexicon;
+mod roman;
 pub mod rules;
 
 pub use lexicon::Lexicon;

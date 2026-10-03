@@ -127,6 +127,10 @@ fn markdown_to_sentences(text: &str) -> String {
         let line = ARROWS.replace_all(&line, ", ");
         let line = SHOUTED.replace_all(&line, |c: &Captures| {
             let w = &c[0];
+            // Roman numerals ("LVIII", "MCMXCIX") are read later in context.
+            if crate::roman::value(w).is_some() {
+                return w.to_string();
+            }
             let mut chars = w.chars();
             let first = chars.next().unwrap();
             format!("{first}{}", chars.as_str().to_lowercase())
@@ -392,6 +396,8 @@ static FR_ABBR: LazyLock<Vec<(Regex, &'static str)>> = LazyLock::new(|| {
         (r"\bc\.-à-d\.", "c'est-à-dire"),
         (r"\bp\. ?ex\.", "par exemple"),
         (r"\benv\.", "environ"),
+        (r"\bHT\b", "hors taxes"),
+        (r"\bTTC\b", "toutes taxes comprises"),
         (r"\betc\.", "et cetera."),
         (r"\b[nN]°\s?", "numéro "),
         (r"\s&\s", " et "),
@@ -417,12 +423,22 @@ static FR_MONEY: LazyLock<Regex> = LazyLock::new(|| {
 });
 static FR_PERCENT_DEGREE_UNIT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(
-        r"(^|[\s(])?(-)?({FR_NUM})\s?(%|°\s?C\b|°\s?F\b|°|km/h\b|km\b|kg\b|cm\b|mm\b|m²|m2\b|m³|kWh\b|kW\b|Go\b|Mo\b|min\b)"
+        r"(^|[\s(])?([-+−])?({FR_NUM})\s?(%|°\s?C\b|°\s?F\b|°|km/h\b|km\b|kg\b|cm\b|mm\b|m²|m2\b|m³|kWh\b|kW\b|Go\b|Mo\b|min\b)"
     ))
     .unwrap()
 });
 static FR_NUMBER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?(-)?({FR_NUM})")).unwrap());
+    LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?([-+−])?({FR_NUM})")).unwrap());
+
+/// The word for a sign in front of a number: `+` → `plus`, `-` or `−`
+/// (U+2212) → `minus`.
+fn sign_word<'a>(sign: Option<&str>, plus: &'a str, minus: &'a str) -> &'a str {
+    match sign {
+        Some("+") => plus,
+        Some(_) => minus,
+        None => "",
+    }
+}
 
 /// Words used to read addresses and symbols in a language.
 struct Spoken {
@@ -535,6 +551,7 @@ static FR_DOT_VERSION: LazyLock<Regex> =
 
 fn french(text: &str, safe: bool) -> String {
     let s = web_and_symbols(text, &FR_SPOKEN, fr_cardinal);
+    let s = crate::roman::french(&s, fr_cardinal, fr_ordinal);
     let s = FR_DOT_THOUSANDS.replace_all(&s, |c: &Captures| c[0].replace('.', " "));
     let mut s = FR_DOT_VERSION
         .replace_all(&s, |c: &Captures| {
@@ -620,7 +637,7 @@ fn french(text: &str, safe: bool) -> String {
     s = FR_PERCENT_DEGREE_UNIT
         .replace_all(&s, |c: &Captures| {
             let lead = c.get(1).map_or("", |m| m.as_str());
-            let minus = if c.get(2).is_some() { "moins " } else { "" };
+            let minus = sign_word(c.get(2).map(|m| m.as_str()), "plus ", "moins ");
             let num = Num::parse(&c[3], &FR_SEP, ',');
             let words = fr_number(&num);
             let pl = num.plural() || num.dec.is_some();
@@ -683,14 +700,13 @@ fn french(text: &str, safe: bool) -> String {
             }
             let lead = c.get(1).map_or("", |m| m.as_str());
             // a minus sign only at a word start ("-5", "(-3"), not "Covid-19"
-            let minus =
-                if c.get(2).is_some() && (c.get(1).is_some() || c.get(0).unwrap().start() == 0) {
-                    "moins "
-                } else if c.get(2).is_some() {
-                    "-"
-                } else {
-                    ""
-                };
+            let minus = match c.get(2) {
+                Some(m) if c.get(1).is_some() || c.get(0).unwrap().start() == 0 => {
+                    sign_word(Some(m.as_str()), "plus ", "moins ")
+                }
+                Some(m) => m.as_str(),
+                None => "",
+            };
             let num = Num::parse(&c[3], &FR_SEP, ',');
             spaced(&ctx, format!("{lead}{minus}{}", fr_number(&num)))
         })
@@ -941,15 +957,16 @@ static EN_MONEY: LazyLock<Regex> = LazyLock::new(|| {
 });
 static EN_PERCENT_DEGREE_UNIT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(
-        r"(^|[\s(])?(-)?({EN_NUM})\s?(%|°\s?C\b|°\s?F\b|°|km/h\b|mph\b|km\b|kg\b|cm\b|mm\b|lbs?\b|ft\b|kWh\b|GB\b|MB\b|min\b)"
+        r"(^|[\s(])?([-+−])?({EN_NUM})\s?(%|°\s?C\b|°\s?F\b|°|km/h\b|mph\b|km\b|kg\b|cm\b|mm\b|lbs?\b|ft\b|kWh\b|GB\b|MB\b|min\b)"
     ))
     .unwrap()
 });
 static EN_NUMBER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?(-)?({EN_NUM})")).unwrap());
+    LazyLock::new(|| Regex::new(&format!(r"(^|[\s(])?([-+−])?({EN_NUM})")).unwrap());
 
 fn english(text: &str, safe: bool) -> String {
-    let mut s = web_and_symbols(text, &EN_SPOKEN, en_cardinal);
+    let s = web_and_symbols(text, &EN_SPOKEN, en_cardinal);
+    let mut s = crate::roman::english(&s, en_cardinal, en_ordinal);
     for (re, rep) in EN_ABBR.iter() {
         s = re.replace_all(&s, *rep).into_owned();
     }
@@ -1030,7 +1047,7 @@ fn english(text: &str, safe: bool) -> String {
     s = EN_PERCENT_DEGREE_UNIT
         .replace_all(&s, |c: &Captures| {
             let lead = c.get(1).map_or("", |m| m.as_str());
-            let minus = if c.get(2).is_some() { "minus " } else { "" };
+            let minus = sign_word(c.get(2).map(|m| m.as_str()), "plus ", "minus ");
             let num = Num::parse(&c[3], &EN_SEP, '.');
             let words = en_number(&num, false);
             let pl = num.plural() || num.dec.is_some();
@@ -1087,14 +1104,13 @@ fn english(text: &str, safe: bool) -> String {
                 return c[0].to_string();
             }
             let lead = c.get(1).map_or("", |m| m.as_str());
-            let minus =
-                if c.get(2).is_some() && (c.get(1).is_some() || c.get(0).unwrap().start() == 0) {
-                    "minus "
-                } else if c.get(2).is_some() {
-                    "-"
-                } else {
-                    ""
-                };
+            let minus = match c.get(2) {
+                Some(m) if c.get(1).is_some() || c.get(0).unwrap().start() == 0 => {
+                    sign_word(Some(m.as_str()), "plus ", "minus ")
+                }
+                Some(m) => m.as_str(),
+                None => "",
+            };
             let num = Num::parse(&c[3], &EN_SEP, '.');
             spaced(&ctx, format!("{lead}{minus}{}", en_number(&num, true)))
         })
@@ -1202,6 +1218,69 @@ mod tests {
         assert_eq!(
             fr("À 120 km/h sur 3 km."),
             "À cent vingt kilomètres heure sur trois kilomètres."
+        );
+    }
+
+    /// covers: REQ-TXT-005
+    #[test]
+    fn signs_and_tax_abbreviations() {
+        assert_eq!(
+            fr("Prix : 1 250 000 € HT (+20 %)."),
+            "Prix : un million deux cent cinquante mille euros hors taxes (plus vingt pour cent)."
+        );
+        assert_eq!(
+            fr("Soit 99 € TTC."),
+            "Soit quatre-vingt-dix-neuf euros toutes taxes comprises."
+        );
+        assert_eq!(
+            fr("Écart de +3 et −2 °C."),
+            "Écart de plus trois et moins deux degrés."
+        );
+        assert_eq!(fr("Appelez le +33 6."), "Appelez le plus trente-trois six.");
+        assert_eq!(
+            en("Up +5% and −3."),
+            "Up plus five percent and minus three."
+        );
+        assert_eq!(fr("Le C++ et le HTML."), "Le C++ et le HTML.");
+    }
+
+    /// covers: REQ-TXT-006
+    #[test]
+    fn roman_numerals_in_context() {
+        assert_eq!(
+            fr("Louis XIV est né au XVIIe siècle."),
+            "Louis quatorze est né au dix-septième siècle."
+        );
+        assert_eq!(
+            fr("François Ier et Jean-Paul II, chapitre IV, tome III."),
+            "François premier et Jean-Paul deux, chapitre quatre, tome trois."
+        );
+        assert_eq!(fr("La Ire République."), "La première République.");
+        assert_eq!(fr("Le XXIe siècle."), "Le vingt et unième siècle.");
+        assert_eq!(
+            fr("La Ve République, le Xe siècle."),
+            "La cinquième République, le dixième siècle."
+        );
+        assert_eq!(
+            en("Henry VIII before World War II, chapter IX."),
+            "Henry the eighth before World War two, chapter nine."
+        );
+        assert_eq!(en("Super Bowl LVIII."), "Super Bowl fifty-eight.");
+        // acronyms, lone capitals and words stay
+        for s in [
+            "Envoyez votre CV et le CD.",
+            "La vitamine C et le plan D.",
+            "Ce CD, De Gaulle, Me Martin.",
+            "Le MD et la taille XL.",
+            "Il dit MIX ou DIV.",
+            "Utilisez CLI ou Python CLI.",
+            "Vous VI, il XXX.",
+        ] {
+            assert_eq!(fr(s), s);
+        }
+        assert_eq!(
+            en("I said I will. The CV is ready."),
+            "I said I will. The CV is ready."
         );
     }
 
